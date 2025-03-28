@@ -1,0 +1,55 @@
+import java.util.concurrent.Semaphore;
+
+class ReadWriteLock {
+    private final Semaphore resourceAccess = new Semaphore(1);  // Ensure exclusive access to the resource
+    private final Semaphore writerAccess = new Semaphore(1);    // Ensure mutual exclusion between writers
+    private final Semaphore readerMutex = new Semaphore(1);     // Synchronize access to the read count
+    private int a_readCount = 0; // Number of active readers
+
+    // Method for readers to acquire the read lock
+    public void readLock() {
+        try {
+            readerMutex.acquire(); // Synchronize reader count updates
+            if (a_readCount == 0) {
+                writerAccess.acquire(); // First reader blocks writers
+            }
+            a_readCount++;
+            readerMutex.release(); // Release lock after updating count
+            resourceAccess.acquire(); // Readers can share resource access
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Method for readers to release the read lock
+    public void readUnLock() {
+        try {
+            readerMutex.acquire(); // Synchronize reader count updates
+            a_readCount--;
+            if (a_readCount == 0) {
+                writerAccess.release(); // Last reader releases the writer lock
+            }
+            readerMutex.release(); // Release lock after updating count
+            resourceAccess.release(); // Release resource for other readers
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Method for writers to acquire the write lock
+    public void writeLock() {
+        try {
+            writerAccess.acquire(); // Writers block other writers and readers
+            resourceAccess.acquire(); // Ensure exclusive access to the resource
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Method for writers to release the write lock
+    public void writeUnLock() {
+        resourceAccess.release(); // Release resource access
+        writerAccess.release(); // Allow other writers or readers to proceed
+    }
+}
